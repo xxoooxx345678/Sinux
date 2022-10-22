@@ -1,0 +1,29 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/teliao/Desktop/Sinux'
+aarch64-linux-gnu-gcc    -c -o kernel/lib/start.o kernel/lib/start.S
+aarch64-linux-gnu-gcc    -c -o kernel/lib/entry.o kernel/lib/entry.S
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/mbox.o kernel/lib/mbox.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/sprintf.o kernel/lib/sprintf.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/dtb.o kernel/lib/dtb.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/uart.o kernel/lib/uart.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/exception.o kernel/lib/exception.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/shell.o kernel/lib/shell.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/system.o kernel/lib/system.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/task.o kernel/lib/task.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/cpio.o kernel/lib/cpio.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/main.o kernel/lib/main.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/malloc.o kernel/lib/malloc.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/program.o kernel/lib/program.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/string.o kernel/lib/string.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/timer.o kernel/lib/timer.c
+aarch64-linux-gnu-gcc -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO   -c -o kernel/lib/mm.o kernel/lib/mm.c
+aarch64-linux-gnu-ld kernel/lib/start.o kernel/lib/entry.o kernel/lib/mbox.o kernel/lib/sprintf.o kernel/lib/dtb.o kernel/lib/uart.o kernel/lib/exception.o kernel/lib/shell.o kernel/lib/system.o kernel/lib/task.o kernel/lib/cpio.o kernel/lib/main.o kernel/lib/malloc.o kernel/lib/program.o kernel/lib/string.o kernel/lib/timer.o kernel/lib/mm.o -T kernel/linker.ld -o kernel8.elf
+aarch64-linux-gnu-objcopy -O binary kernel8.elf kernel8.img
+aarch64-linux-gnu-gcc -c programs/test.S -ggdb -Wno-implicit -ffreestanding -nostdlib -nostartfiles -Ikernel/include -DDEMO -o programs/test.o
+aarch64-linux-gnu-ld programs/test.o -T programs/linker.ld -o programs/test.elf
+aarch64-linux-gnu-objcopy -O binary programs/test.elf rootfs/test
+cd rootfs && (find . | cpio -o -H newc > ../initramfs.cpio)
+make: Leaving directory '/home/teliao/Desktop/Sinux'
+ 
+make: Circular initramfs.cpio <- initramfs.cpio dependency dropped.
+
