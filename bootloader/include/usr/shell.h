@@ -2,10 +2,9 @@
 #define SHELL_H
 
 #include <drivers/uart.h>
-#include <drivers/mailbox.h>
-#include <mm/mm.h>
 #include <string.h>
 #include <stddef.h>
+#include <load.h>
 
 void shell();
 void cmd_resolve(char *cmd);

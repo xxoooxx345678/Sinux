@@ -14,9 +14,11 @@ void shell()
 
 void cmd_resolve(char *cmd)
 {
-    char argv[100][MAX_BUF_SIZE];
+    char *argv[100];
     size_t argc = 0;
     size_t cmd_len = strlen(cmd);
+
+    argv[0] = smalloc(MAX_BUF_SIZE);
 
     int i, j;
     for (i = 0, j = 0; i < cmd_len; ++i)
@@ -24,6 +26,7 @@ void cmd_resolve(char *cmd)
         if (cmd[i] == ' ')
         {
             argv[argc][j] = '\0';
+            argv[++argc] = smalloc(MAX_BUF_SIZE);
             j = 0;
             continue;
         }
