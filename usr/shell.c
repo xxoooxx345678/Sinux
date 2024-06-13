@@ -23,7 +23,7 @@ void cmd_resolve(char *cmd)
     {
         if (cmd[i] == ' ')
         {
-            argv[argc][j] = '\0';
+            argv[argc++][j] = '\0';
             j = 0;
             continue;
         }
