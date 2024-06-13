@@ -5,6 +5,8 @@
 extern char __start[];
 extern char __end[];
 
+extern char *dtb_base_address;
+
 void relocate()
 {
     char *cur_bl_start = (char *)__start;
@@ -21,6 +23,8 @@ void relocate()
 
 void load()
 {
+    char *backup_dtb_base_address = dtb_base_address;
+
     char buf[MAX_BUF_SIZE];
     int img_size;
 
@@ -33,7 +37,7 @@ void load()
     uart_printf("\nStart transfering ... ");
     for (int i = 0; i < img_size; ++i)
         kernel_start[i] = uart_raw_getc();
-    
-    void (*kernel)() = (void(*)())kernel_start;
-    kernel();
+
+    void (*kernel)(char *) = (void(*)(char *))kernel_start;
+    kernel(backup_dtb_base_address);
 }

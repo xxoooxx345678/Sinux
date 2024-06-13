@@ -34,17 +34,19 @@ void cmd_resolve(char *cmd)
     }
     argv[argc++][j] = '\0';
 
-    if (!strcmp(cmd, "help"))
+    if (!strcmp(argv[0], "help"))
     {
         uart_printf("help                            : print this help menu\n");
         uart_printf("hello                           : print Hello World!\n");
         uart_printf("info                            : show infos of board revision and ARM memory\n");
+        uart_printf("ls                              : list directory contents\n");
+        uart_printf("cat [FILE]                      : concatenate files and print on the standard output\n");
     }
-    else if (!strcmp(cmd, "hello"))
+    else if (!strcmp(argv[0], "hello"))
         uart_printf("Hello World!\n");
-    else if (!strcmp(cmd, "clear"))
+    else if (!strcmp(argv[0], "clear"))
         clear();
-    else if (!strcmp(cmd, "info"))
+    else if (!strcmp(argv[0], "info"))
     {
         unsigned int board_revision;
         get_board_revision(&board_revision);
@@ -57,6 +59,10 @@ void cmd_resolve(char *cmd)
         uart_printf("ARM memory base address in bytes : 0x%x\n", arm_mem_base_addr);
         uart_printf("ARM memory size in bytes : 0x%x\n", arm_mem_size);
     }
+    else if (!strcmp(argv[0], "ls"))
+        ls(".");
+    else if (!strcmp(argv[0], "cat"))
+        cat(argv[1]);
     else
         uart_printf("Unknown command!: %s\n", argv[0]);
 }

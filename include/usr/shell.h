@@ -4,6 +4,7 @@
 #include <drivers/uart.h>
 #include <drivers/mailbox.h>
 #include <mm/mm.h>
+#include <fs/cpio.h>
 #include <string.h>
 #include <stddef.h>
 

@@ -1,6 +1,7 @@
 .section ".text"
 
 .global _start
+.global dtb_base_address
 
 _start:
     mrs     x1, mpidr_el1
@@ -12,6 +13,9 @@ busyloop:
     b       busyloop
 
 init:
+    // save dtb_base_address
+    mov     x29, x0
+
     // stack pointer
     mov     sp, 0x80000
 
@@ -22,6 +26,10 @@ init:
 
     // clear bss section
     bl      bssinit
+
+    // pass dtb base address
+    ldr     x0, =dtb_base_address
+    str     x29, [x0]    
 
 kernel:
     bl      main
