@@ -17,7 +17,7 @@ OBJCPY := $(ARMGNU)-objcopy
 QEMU   := qemu-system-aarch64
 
 SRCS := $(wildcard **/*.S) $(wildcard **/*.c) 
-SRC_DIR := lib
+SRCS := $(filter-out test/%.S, $(SRCS))
 OBJ_DIR := build
 OBJS = $(patsubst %.S, $(OBJ_DIR)/%_s.o, $(patsubst %.c, $(OBJ_DIR)/%_c.o, $(notdir $(SRCS))))
 

@@ -1,6 +1,5 @@
 #include <drivers/uart.h>
 
-
 /* Auxilary mini UART registers */
 #define AUX_ENABLE      ((volatile unsigned int *)(MMIO_BASE + 0x00215004))
 #define AUX_MU_IO       ((volatile unsigned int *)(MMIO_BASE + 0x00215040))
@@ -14,6 +13,14 @@
 #define AUX_MU_CNTL     ((volatile unsigned int *)(MMIO_BASE + 0x00215060))
 #define AUX_MU_STAT     ((volatile unsigned int *)(MMIO_BASE + 0x00215064))
 #define AUX_MU_BAUD     ((volatile unsigned int *)(MMIO_BASE + 0x00215068))
+
+char uart_tx_buffer[MAX_BUF_SIZE] = {0};
+uint16_t uart_tx_buffer_w_idx = 0;
+uint16_t uart_tx_buffer_r_idx = 0; 
+
+char uart_rx_buffer[MAX_BUF_SIZE] = {0};
+uint16_t uart_rx_buffer_w_idx = 0;
+uint16_t uart_rx_buffer_r_idx = 0;
 
 void uart_init()
 {
@@ -43,6 +50,31 @@ void uart_init()
     *AUX_MU_BAUD = 270; // 6.Set AUX_MU_BAUD to 270. Set baud rate to 115200
     *AUX_MU_IIR = 0x6;  // 7.Set AUX_MU_IIR_REG to 6. No FIFO. (not clear FIFO ???)
     *AUX_MU_CNTL = 3;   // 8.Set AUX_MU_CNTL_REG to 3. Enable the transmitter and receiver.
+
+    /* Enable UART interrupt */
+    uart_enable_tx_interrupt();
+    uart_enable_rx_interrupt();
+    *ENABLE_IRQS_1 |= (1 << 29);
+}
+
+void uart_enable_tx_interrupt()
+{
+    *AUX_MU_IER |= 0b10;
+}
+
+void uart_disable_tx_interrupt()
+{
+    *AUX_MU_IER &= ~0b10;
+}
+
+void uart_enable_rx_interrupt()
+{
+    *AUX_MU_IER |= 0b01;
+}
+
+void uart_disable_rx_interrupt()
+{
+    *AUX_MU_IER &= ~0b01;
 }
 
 void uart_putc(char c)
@@ -135,6 +167,118 @@ int uart_printf(char *fmt, ...)
         if (*s == '\n')
             uart_putc('\r');
         uart_putc(*s++);
+    }
+    __builtin_va_end(args);
+    return count;
+}
+
+void uart_interrupt_handler()
+{
+    if (*AUX_MU_IIR & (0b01 << 1)) // tx interrupt
+    {
+        uart_disable_tx_interrupt();
+        uart_tx_interrupt_handler();
+    }
+
+    if (*AUX_MU_IIR & (0b10 << 1)) // rx interrupt
+    {
+        uart_disable_rx_interrupt();
+        uart_rx_interrupt_handler();
+    }
+}
+
+static void uart_tx_interrupt_handler()
+{
+    if (uart_tx_buffer_r_idx == uart_tx_buffer_w_idx)
+    {
+        uart_disable_tx_interrupt();
+        return;
+    }
+
+    uart_putc(uart_tx_buffer[uart_tx_buffer_r_idx++]);
+    uart_tx_buffer_r_idx %= MAX_BUF_SIZE;
+
+    uart_enable_tx_interrupt(); // unmasks the interrupt line to get the next interrupt at the end of the task.
+}
+
+static void uart_rx_interrupt_handler()
+{
+    uart_rx_buffer[uart_rx_buffer_w_idx++] = uart_getc();
+    uart_rx_buffer_w_idx %= MAX_BUF_SIZE;
+
+    uart_enable_rx_interrupt(); // unmasks the interrupt line to get the next interrupt at the end of the task.
+}
+
+void uart_async_putc(char c)
+{
+    uart_tx_buffer[uart_tx_buffer_w_idx++] = c;
+    uart_tx_buffer_w_idx %= MAX_BUF_SIZE;
+
+    uart_enable_tx_interrupt();
+}
+
+void uart_async_puts(char *s)
+{
+    int i = 0;
+
+    while (*s)
+    {
+        uart_async_putc(*s++);
+        i++;
+    }
+    uart_async_putc('\r');
+    uart_async_putc('\n');
+}
+
+char uart_async_getc()
+{
+    while (uart_rx_buffer_r_idx == uart_rx_buffer_w_idx)
+        asm volatile("nop");
+
+    char ret = uart_rx_buffer[uart_rx_buffer_r_idx++];
+    uart_rx_buffer_r_idx %= MAX_BUF_SIZE;
+
+    return ret;
+}
+
+char *uart_async_gets(char *buf)
+{
+    int count;
+    char c;
+    char *s;
+    for (s = buf, count = 0; (c = uart_async_getc()) != '\n' && count != MAX_BUF_SIZE - 1; count++)
+    {
+        *s = c;
+        if (*s == '\x7f')
+        {
+            count--;
+            if (count == -1)
+            {
+                uart_async_putc(' '); // prevent back over command line #
+                continue;
+            }
+            s--;
+            count--;
+            continue;
+        }
+        s++;
+    }
+    *s = '\0';
+    return buf;
+}
+
+int uart_async_printf(char *fmt, ...)
+{
+    __builtin_va_list args;
+    __builtin_va_start(args, fmt);
+    char buf[MAX_BUF_SIZE];
+    char *s = (char *)buf;
+    int count = vsprintf(s, fmt, args);
+    while (*s)
+    {
+        if (*s == '\n')
+            uart_async_putc('\r');
+        uart_async_putc(*s++);
     }
     __builtin_va_end(args);
     return count;
@@ -296,3 +440,4 @@ static unsigned int sprintf(char *dst, char *fmt, ...)
     __builtin_va_end(args);
     return r;
 }
+
