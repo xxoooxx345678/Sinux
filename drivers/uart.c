@@ -175,30 +175,26 @@ int uart_printf(char *fmt, ...)
 void uart_interrupt_handler()
 {
     if (*AUX_MU_IIR & (0b01 << 1)) // tx interrupt
-    {
-        uart_disable_tx_interrupt();
         uart_tx_interrupt_handler();
-    }
 
     if (*AUX_MU_IIR & (0b10 << 1)) // rx interrupt
-    {
-        uart_disable_rx_interrupt();
         uart_rx_interrupt_handler();
-    }
 }
 
 static void uart_tx_interrupt_handler()
 {
     if (uart_tx_buffer_r_idx == uart_tx_buffer_w_idx)
     {
-        uart_disable_tx_interrupt();
+        uart_enable_rx_interrupt(); 
         return;
     }
 
     uart_putc(uart_tx_buffer[uart_tx_buffer_r_idx++]);
     uart_tx_buffer_r_idx %= MAX_BUF_SIZE;
 
-    uart_enable_tx_interrupt(); // unmasks the interrupt line to get the next interrupt at the end of the task.
+    // unmasks the interrupt line to get the next interrupt at the end of the task.
+    uart_enable_tx_interrupt(); 
+    uart_enable_rx_interrupt(); 
 }
 
 static void uart_rx_interrupt_handler()
@@ -206,7 +202,9 @@ static void uart_rx_interrupt_handler()
     uart_rx_buffer[uart_rx_buffer_w_idx++] = uart_getc();
     uart_rx_buffer_w_idx %= MAX_BUF_SIZE;
 
-    uart_enable_rx_interrupt(); // unmasks the interrupt line to get the next interrupt at the end of the task.
+    // unmasks the interrupt line to get the next interrupt at the end of the task.
+    uart_enable_tx_interrupt(); 
+    uart_enable_rx_interrupt(); 
 }
 
 void uart_async_putc(char c)

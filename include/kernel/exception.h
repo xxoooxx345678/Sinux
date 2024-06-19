@@ -4,6 +4,8 @@
 #include <drivers/uart.h>
 #include <drivers/mmio.h>
 #include <kernel/timer.h>
+#include <kernel/list.h>
+#include <mm/mm.h>
 
 #define CORE0_INTERRUPT_SOURCE      ((volatile unsigned int *)(0x40000060))
 
@@ -21,6 +23,14 @@
 #define IRQ_PENDING_1_AUX_INT       (1 << 29)
 #define INTERRUPT_SOURCE_GPU        (1 << 8)
 #define INTERRUPT_SOURCE_CNTPNSIRQ  (1 << 1)
+
+typedef void (*irq_callback)();
+
+typedef struct irq_t {
+    struct list_head listhead;
+    irq_callback callback;
+    int prio;                   // 0 is the highest priority
+} irq_t;
 
 static inline void enable_interrupt()
 {

@@ -47,6 +47,7 @@ void timer_add(timer_callback callback, char *arg, uint64_t timeout)
 
     struct list_head *it = NULL;
 
+    disable_interrupt(); // critical section start
     list_for_each(it, &timer_list)
     {
         if (((timer_t *)it)->timeout > timer->timeout)
@@ -62,6 +63,7 @@ void timer_add(timer_callback callback, char *arg, uint64_t timeout)
 
     // Update timer interrupt tick
     set_timer_interrupt_tick(((timer_t *)timer_list.next)->timeout);
+    enable_interrupt(); // critical section end
 
     timer_interrupt_enable();
 }
@@ -69,14 +71,18 @@ void timer_add(timer_callback callback, char *arg, uint64_t timeout)
 void timer_pop()
 {
     if (list_empty(&timer_list))
-        timer_interrupt_disable();
-    else
-    {
-        timer_t *head = (timer_t *)timer_list.next;
-        
-        list_del_entry(timer_list.next);
-        head->callback(head->arg);
-    }
+        return;
+
+    timer_t *head = (timer_t *)timer_list.next;
+    
+    disable_interrupt(); // critical section start
+    list_del_entry(timer_list.next);
+    enable_interrupt(); // critical section end
+
+    head->callback(head->arg);
+
+    // unmasks the interrupt line to get the next interrupt at the end of the task.
+    timer_interrupt_enable();
 }
 
 uint64_t get_current_tick()
