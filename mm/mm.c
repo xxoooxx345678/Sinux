@@ -1,9 +1,9 @@
 #include <mm/mm.h>
 
-#define DEMO
+// #define DEMO
 
 #define PAGE_FRAME_SIZE 0x1000
-#define PAGE_FRAME_MAX_ORDER 16
+#define PAGE_FRAME_MAX_ORDER 8
 #define CHUNK_SLOT_TYPE_COUNT 9
 #define MEMORY_ALIGN 4
 
