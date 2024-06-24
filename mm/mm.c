@@ -1,6 +1,6 @@
 #include <mm/mm.h>
 
-// #define DEMO
+#define DEMO
 
 #define PAGE_FRAME_SIZE 0x1000
 #define PAGE_FRAME_MAX_ORDER 16
@@ -46,8 +46,8 @@ static int pf_address_to_index(void *address)
 
 void memory_reserve(void *start, void *end)
 {
-    start = (void *)((int)start / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
-    end = (void *)(((int) end + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
+    start = (void *)((uint64_t)start / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
+    end = (void *)(((uint64_t) end + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
 
     for (void *tmp = start; tmp < end; tmp = (void *)((uint64_t)tmp + PAGE_FRAME_SIZE))
         pf_entries[pf_address_to_index(tmp)].status = ALLOCATED;
@@ -71,6 +71,7 @@ void pf_init()
     memory_reserve(__image_start, __image_end);
     memory_reserve(cpio_start, cpio_end);
     memory_reserve(__simple_allocator_start, __simple_allocator_end);
+
 
     // Merge page frames
     for (int i = 0; i < PAGE_FRAME_MAX_ORDER - 1; ++i)
