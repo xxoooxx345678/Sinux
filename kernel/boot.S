@@ -24,7 +24,7 @@ init:
     msr     vbar_el1, x0
 
     // stack pointer
-    mov     sp, 0x80000
+    mov     sp, 0x3c000000
 
     // Stop trapping when accessing advanced SIMD and floating-point registers at EL0 & EL1
     mrs     x1, cpacr_el1

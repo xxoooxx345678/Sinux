@@ -32,14 +32,14 @@ void timer_interrupt_disable()
 
 void timer_add(timer_callback callback, char *arg, uint64_t timeout)
 {
-    timer_t *timer = smalloc(sizeof(timer_t));
+    timer_t *timer = malloc(sizeof(timer_t));
 
     // init listhead
     INIT_LIST_HEAD(&timer->listhead);
 
     // copy callback & arguments
     timer->callback = callback;
-    timer->arg = smalloc(strlen(arg) + 1);
+    timer->arg = malloc(strlen(arg) + 1);
     strcpy(timer->arg, arg);
 
     // set timeout

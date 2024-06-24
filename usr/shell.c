@@ -24,7 +24,7 @@ void cmd_resolve(char *cmd)
     size_t argc = 0;
     size_t cmd_len = strlen(cmd);
 
-    argv[0] = smalloc(MAX_BUF_SIZE);
+    argv[0] = malloc(MAX_BUF_SIZE);
 
     int i, j;
     for (i = 0, j = 0; i < cmd_len; ++i)
@@ -32,7 +32,7 @@ void cmd_resolve(char *cmd)
         if (cmd[i] == ' ')
         {
             argv[argc][j] = '\0';
-            argv[++argc] = smalloc(MAX_BUF_SIZE);
+            argv[++argc] = malloc(MAX_BUF_SIZE);
             j = 0;
             continue;
         }
@@ -50,6 +50,7 @@ void cmd_resolve(char *cmd)
         uart_async_printf("exec [FILE]                     : load program and execute a program\n");
         uart_async_printf("setTimeout [MESSAGE] [SECONDS]  : print [MESSAGE] after [SECONDS] seconds\n");
         uart_async_printf("timer_test                      : set an alarm that alert every two seconds\n");
+        uart_async_printf("mm_test                         : test memory management (buddy system)\n");
     }
     else if (!strcmp(argv[0], "hello"))
         uart_async_printf("Hello World!\n");
@@ -75,13 +76,19 @@ void cmd_resolve(char *cmd)
     else if (!strcmp(argv[0], "exec"))
     {
         char *program_start = get_file_start(argv[1]);
-        char *user_stack = smalloc(0x100) + 0x100;
+        char *user_stack = malloc(0x100) + 0x100;
         run_program(program_start, user_stack);
     }
     else if (!strcmp(argv[0], "setTimeout"))
         timer_add(uart_async_puts, argv[1], atoi(argv[2]));
     else if (!strcmp(argv[0], "timer_test"))
         timer_add(timer_test, NULL, 2);
+    else if (!strcmp(argv[0], "mm_test"))
+    {
+        page_frame_allocator_test();
+        uart_async_printf("\n\n-------------------------------------------------------\n\n");
+        chunk_slot_allocator_test();
+    }
     else
         uart_async_printf("Unknown command!: %s\n", argv[0]);
 }

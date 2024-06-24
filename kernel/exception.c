@@ -6,7 +6,7 @@ int curr_irq_prio = 32768;
 
 void irq_add(irq_callback callback, int prio)
 {
-    irq_t *irq = smalloc(sizeof(irq_t));
+    irq_t *irq = malloc(sizeof(irq_t));
 
     // init listhead
     INIT_LIST_HEAD(&irq->listhead);    
@@ -104,5 +104,5 @@ void irq_handler()
 
 void invalid_exception_handler(unsigned long long x0)
 {
-    uart_printf("invalid ecception : 0x%x\n", x0);
+    uart_printf("invalid exception : 0x%x\n", x0);
 }
