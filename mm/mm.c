@@ -72,7 +72,6 @@ void pf_init()
     memory_reserve(cpio_start, cpio_end);
     memory_reserve(__simple_allocator_start, __simple_allocator_end);
 
-
     // Merge page frames
     for (int i = 0; i < PAGE_FRAME_MAX_ORDER - 1; ++i)
     {

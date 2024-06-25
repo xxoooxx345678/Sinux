@@ -8,18 +8,18 @@
 typedef enum {
     FREE,
     ALLOCATED
-} status;
+} mm_status;
 
 typedef struct pf_entry {
     int index;
     int order;
-    status status;
+    mm_status status;
 } pf_entry_t;
 
 typedef struct cs_entry {
     int index;
     int type;
-    status status;
+    mm_status status;
 } cs_entry_t;
 
 void *smalloc(size_t size);
