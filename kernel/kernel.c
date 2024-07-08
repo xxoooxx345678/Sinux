@@ -16,8 +16,6 @@ void main()
     sched_init();
     enable_interrupt();
 
-    interrupt_status();
-    current_exception_level();
     thread_create((program_t)shell, "shell");
 
     sched_enable();

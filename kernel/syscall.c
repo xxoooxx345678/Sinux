@@ -35,11 +35,10 @@ int sys_fork()
 {
     CRITICAL_SECTION_START;
 
+    int ret = 0;
+
     thread_t *child_thread = thread_create(cur_thread->entry_point, cur_thread->name);
     
-    int parent_pid = cur_thread->pid;
-    thread_t *parent_thread = cur_thread;
-
     memcpy(child_thread->user_sp, cur_thread->user_sp, USTACK_SIZE);
     memcpy(child_thread->kernel_sp, cur_thread->kernel_sp, KSTACK_SIZE);
 
@@ -51,20 +50,20 @@ int sys_fork()
 
     store_context(&cur_thread->context);
 
-    if (parent_pid != cur_thread->pid)
-        goto child;
-
     child_thread->context = cur_thread->context;
+    child_thread->context.lr = &&out;
     child_thread->context.fp = child_thread->kernel_sp + (cur_thread->context.fp - (uint64_t)cur_thread->kernel_sp);
     child_thread->context.sp = child_thread->kernel_sp + (cur_thread->context.sp - (uint64_t)cur_thread->kernel_sp);
 
-    CRITICAL_SECTION_END;
-    return child_thread->pid;
+    child_thread->trapframe = (trapframe_t *)((uint64_t)child_thread->kernel_sp + (uint64_t)cur_thread->trapframe - (uint64_t)cur_thread->kernel_sp);
+    child_thread->trapframe->sp_el0 = child_thread->user_sp + child_thread->trapframe->sp_el0 - cur_thread->user_sp;
 
-child:
-    cur_thread->trapframe = (trapframe_t *)((uint64_t)cur_thread->kernel_sp + (uint64_t)parent_thread->trapframe - (uint64_t)parent_thread->kernel_sp);
-    cur_thread->trapframe->sp_el0 = cur_thread->user_sp + cur_thread->trapframe->sp_el0 - parent_thread->user_sp;
-    return 0;
+    ret = child_thread->pid;
+
+    CRITICAL_SECTION_END;
+
+out:
+    return ret;
 }
 
 void sys_exit()

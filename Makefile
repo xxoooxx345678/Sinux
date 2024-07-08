@@ -21,7 +21,7 @@ SRCS := $(filter-out test/%.S, $(SRCS))
 OBJ_DIR := build
 OBJS = $(patsubst %.S, $(OBJ_DIR)/%_s.o, $(patsubst %.c, $(OBJ_DIR)/%_c.o, $(notdir $(SRCS))))
 
-CFLAGS := -ggdb -Wno-implicit -Wno-int-conversion -ffreestanding -nostdlib -nostartfiles -Iinclude -Iinclude/lib
+CFLAGS := -ggdb -std=gnu99 -Wno-implicit -Wno-int-conversion -ffreestanding -nostdlib -nostartfiles -Iinclude -Iinclude/lib -O0
 CPIO_FILE = test/initramfs.cpio
 DTB_FILE = bcm2710-rpi-3-b-plus.dtb
 
