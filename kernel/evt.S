@@ -152,19 +152,16 @@ error_el1h:
 sync_el0_64:
     save_cpu_context
     mov     x0, sp
-    mrs     x1, esr_el1
     bl      sync_el0_64_handler
 
-    //mov     x0, sp // check signal when going back to user mode (el0)
-    //bl      check_signal
+    bl      thread_handle_signal
     restore_cpu_context
     eret
 irq_el0_64:
     save_cpu_context
     bl      irq_handler
 
-    //mov     x0,sp // check signal when going back to user mode (el0)
-    //bl      check_signal
+    bl      thread_handle_signal
     restore_cpu_context
     eret
 fiq_el0_64:

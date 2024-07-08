@@ -253,13 +253,15 @@ void cs_free(void *address)
 
 void *malloc(size_t size)
 {
+    CRITICAL_SECTION_START;
+    void *ret;
     if (size < PAGE_FRAME_SIZE)
     {
 #ifdef DEMO
         uart_printf("--------------------------------------------\n");
         uart_printf("size: %d\n", size);
 #endif
-        return cs_allocate(size);
+        ret = cs_allocate(size);
     }
     else
     {
@@ -267,23 +269,25 @@ void *malloc(size_t size)
         uart_printf("--------------------------------------------\n");
         uart_printf("size: %d, page num: %d\n", size, (size + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE);
 #endif
-        return pf_allocate((size + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE);
+        ret = pf_allocate((size + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE);
     }
+    CRITICAL_SECTION_END;
+    return ret;
 }
 
 void free(void *address)
 {
+    CRITICAL_SECTION_START;
     int index = pf_address_to_index(address);
 
-    if (pf_entries[index].status == FREE)
-        return;
-    else
+    if (pf_entries[index].status != FREE)
     {
         if (cs_entries[index].status == FREE)
             pf_free(address);
         else
             cs_free(address);
     }
+    CRITICAL_SECTION_END;
 }
 
 void memory_init(void *start, void *end)

@@ -29,7 +29,7 @@ int cpio_newc_parse_header(struct cpio_newc_header *this_header_pointer,
 
 int ls(char* working_dir);
 int cat(char* thefilepath);
-char* get_file_start(char *thefilepath);
-unsigned int get_file_size(char *thefilepath);
+char* get_file_start(const char *thefilepath);
+unsigned int get_file_size(const char *thefilepath);
 
 #endif

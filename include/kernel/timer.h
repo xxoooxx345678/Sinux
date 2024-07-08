@@ -20,7 +20,7 @@ void timer_enable();
 void timer_disable();
 void timer_interrupt_enable();
 void timer_interrupt_disable();
-void timer_add(timer_callback callback, char *arg, uint64_t timeout);
+void timer_add(timer_callback callback, char *arg, int bytick, uint64_t timeout);
 void timer_pop();
 
 uint64_t get_current_tick();

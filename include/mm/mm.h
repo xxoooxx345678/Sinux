@@ -2,6 +2,7 @@
 #define MM_H
 
 #include <kernel/list.h>
+#include <kernel/exception.h>
 #include <mm/mm.h>
 #include <stddef.h>
 

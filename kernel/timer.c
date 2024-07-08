@@ -30,7 +30,7 @@ void timer_interrupt_disable()
     asm volatile("str   %0, [%1]"::"r"(0b00), "r"(CORE0_TIMER_IRQ_CTRL));
 }
 
-void timer_add(timer_callback callback, char *arg, uint64_t timeout)
+void timer_add(timer_callback callback, char *arg, int bytick, uint64_t timeout)
 {
     timer_t *timer = malloc(sizeof(timer_t));
 
@@ -43,11 +43,10 @@ void timer_add(timer_callback callback, char *arg, uint64_t timeout)
     strcpy(timer->arg, arg);
 
     // set timeout
-    timer->timeout = get_current_tick() + timeout * get_clock_freq();
-
+    timer->timeout = get_current_tick() + (bytick ? timeout : timeout * get_clock_freq());
     struct list_head *it = NULL;
 
-    disable_interrupt(); // critical section start
+    CRITICAL_SECTION_START; 
     list_for_each(it, &timer_list)
     {
         if (((timer_t *)it)->timeout > timer->timeout)
@@ -63,7 +62,7 @@ void timer_add(timer_callback callback, char *arg, uint64_t timeout)
 
     // Update timer interrupt tick
     set_timer_interrupt_tick(((timer_t *)timer_list.next)->timeout);
-    enable_interrupt(); // critical section end
+    CRITICAL_SECTION_END; 
 
     timer_interrupt_enable();
 }
@@ -75,11 +74,16 @@ void timer_pop()
 
     timer_t *head = (timer_t *)timer_list.next;
     
-    disable_interrupt(); // critical section start
+    CRITICAL_SECTION_START; 
     list_del_entry(timer_list.next);
-    enable_interrupt(); // critical section end
+    CRITICAL_SECTION_END; 
 
     head->callback(head->arg);
+
+    CRITICAL_SECTION_START; 
+    free(head->arg);
+    free(head);
+    CRITICAL_SECTION_END; 
 
     // unmasks the interrupt line to get the next interrupt at the end of the task.
     timer_interrupt_enable();

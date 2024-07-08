@@ -1,8 +1,5 @@
 #include <drivers/mailbox.h>
 
-/* mailbox message buffer */
-volatile unsigned int  __attribute__((aligned(16))) mbox[36];
-
 /* channels */
 #define MBOX_CH_POWER   0
 #define MBOX_CH_FB      1
@@ -35,9 +32,10 @@ volatile unsigned int  __attribute__((aligned(16))) mbox[36];
 /**
  * Make a mailbox call. Returns 0 on failure, non-zero on success
  */
-int mbox_call(unsigned char ch)
+int mbox_call(unsigned char ch, unsigned int *mbox)
 {
-    unsigned int r = (((unsigned int)((unsigned long)&mbox)&~0xF) | (ch&0xF));
+    CRITICAL_SECTION_START;
+    unsigned int r = (((unsigned int)((unsigned long)mbox)&~0xF) | (ch&0xF));
     /* wait until we can write to the mailbox */
     do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_FULL);
     /* write the address of our message to the mailbox with channel identifier */
@@ -49,13 +47,20 @@ int mbox_call(unsigned char ch)
         /* is it a response to our message? */
         if(r == *MBOX_READ)
             /* is it a valid successful response? */
+        {
+            CRITICAL_SECTION_END;
             return mbox[1]==MBOX_RESPONSE;
+        }
     }
+    CRITICAL_SECTION_END;
     return 0;
 }
 
 int get_board_revision(unsigned int *board_revision)
 {
+    /* mailbox message buffer */
+    unsigned int __attribute__((aligned(16))) mbox[36];
+
     mbox[0] = 7 * 4;              // length of the message
     mbox[1] = MBOX_REQUEST;       // request code
     mbox[2] = GET_BOARD_REVISION; // tag identifier
@@ -64,7 +69,7 @@ int get_board_revision(unsigned int *board_revision)
     mbox[5] = 0;                  // clear output buffer
     mbox[6] = MBOX_TAG_LAST;      // end tag
     // send the message to the GPU and receive answer
-    if (mbox_call(MBOX_CH_PROP))
+    if (mbox_call(MBOX_CH_PROP, mbox))
     {
         *board_revision = mbox[5];
         return 0;
@@ -79,6 +84,9 @@ int get_board_revision(unsigned int *board_revision)
 
 int get_arm_memory_info(unsigned int *base_addr, unsigned int *size)
 {
+    /* mailbox message buffer */
+    unsigned int __attribute__((aligned(16))) mbox[36];
+
     /*
         GET arm_memory address and size
     */
@@ -92,7 +100,7 @@ int get_arm_memory_info(unsigned int *base_addr, unsigned int *size)
     mbox[7] = MBOX_TAG_LAST;  // end tag
 
     // send the message to the GPU and receive answer
-    if (mbox_call(MBOX_CH_PROP))
+    if (mbox_call(MBOX_CH_PROP, mbox))
     {
         *base_addr = mbox[5];
         *size = mbox[6];

@@ -34,5 +34,7 @@ int uart_async_printf(char *fmt, ...);
 /* util */
 static unsigned int vsprintf(char *dst, char *fmt, __builtin_va_list args);
 static unsigned int sprintf(char *dst, char *fmt, ...);
+void uart_enable_echo();
+void uart_disable_echo();
 
 #endif

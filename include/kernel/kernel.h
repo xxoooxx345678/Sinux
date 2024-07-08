@@ -6,5 +6,6 @@
 #include <mm/mm.h>
 #include <kernel/timer.h>
 #include <kernel/exception.h>
+#include <kernel/sched.h>
 
 #endif

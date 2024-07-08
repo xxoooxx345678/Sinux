@@ -3,7 +3,7 @@
 static void timer_test()
 {
     uart_async_printf("%d seconds after booting\n", get_current_tick() / get_clock_freq());
-    timer_add(timer_test, NULL, 2);
+    timer_add(timer_test, NULL, 0, 2);
 }
 
 void shell()
@@ -75,14 +75,19 @@ void cmd_resolve(char *cmd)
         cat(argv[1]);
     else if (!strcmp(argv[0], "exec"))
     {
-        char *program_start = get_file_start(argv[1]);
-        char *user_stack = malloc(0x100) + 0x100;
-        run_program(program_start, user_stack);
+        uint64_t tmp;
+        asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
+        tmp |= 1;
+        asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
+
+        uart_disable_echo();
+
+        thread_exec(argv[1], NULL);
     }
     else if (!strcmp(argv[0], "setTimeout"))
-        timer_add(uart_async_puts, argv[1], atoi(argv[2]));
+        timer_add(uart_async_puts, argv[1], 0, atoi(argv[2]));
     else if (!strcmp(argv[0], "timer_test"))
-        timer_add(timer_test, NULL, 2);
+        timer_add(timer_test, NULL, 0, 2);
     else if (!strcmp(argv[0], "mm_test"))
     {
         page_frame_allocator_test();
@@ -95,12 +100,12 @@ void cmd_resolve(char *cmd)
 
 void clear()
 {
-    uart_async_printf("\x1b[H\x1b[J");
+    uart_printf("\x1b[H\x1b[J");
 }
 
 void print_boot_msg()
 {
     clear();
-    uart_async_printf("WELCOME !!!!!\n");
-    uart_async_printf("\n");
+    uart_printf("WELCOME !!!!!\n");
+    uart_printf("\n");
 }

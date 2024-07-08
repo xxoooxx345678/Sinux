@@ -98,7 +98,7 @@ int ls(char *working_dir)
     return 0;
 }
 
-char* get_file_start(char *thefilepath)
+char* get_file_start(const char *thefilepath)
 {
     char *filepath;
     char *filedata;
@@ -125,7 +125,7 @@ char* get_file_start(char *thefilepath)
     return 0;
 }
 
-unsigned int get_file_size(char *thefilepath)
+unsigned int get_file_size(const char *thefilepath)
 {
     char *filepath;
     char *filedata;

@@ -4,9 +4,11 @@
 
 // argument
 // x0: program start address
-// x1: stack start address
+// x1: user stack start address
+// x2: kernel stack start address
 run_program:        
     msr     elr_el1, x0
     msr     spsr_el1, xzr
     msr     sp_el0, x1
+    mov     sp, x2
     eret

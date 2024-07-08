@@ -5,7 +5,14 @@
 #include <drivers/mmio.h>
 #include <kernel/timer.h>
 #include <kernel/list.h>
+#include <kernel/syscall.h>
+#include <kernel/trapframe.h>
+#include <kernel/sched.h>
 #include <mm/mm.h>
+#include <stddef.h>
+
+#define CRITICAL_SECTION_START      critical_section_start()
+#define CRITICAL_SECTION_END        critical_section_end()
 
 #define CORE0_INTERRUPT_SOURCE      ((volatile unsigned int *)(0x40000060))
 
@@ -26,6 +33,8 @@
 
 typedef void (*irq_callback)();
 
+static int lock = 0;
+
 typedef struct irq_t {
     struct list_head listhead;
     irq_callback callback;
@@ -40,6 +49,33 @@ static inline void enable_interrupt()
 static inline void disable_interrupt()
 {
     asm volatile("msr daifset, #0b1111");
+}
+
+static inline void critical_section_end()
+{
+    --lock;
+    if (lock == 0)
+        enable_interrupt();
+}
+
+static inline void critical_section_start()
+{
+    ++lock;
+    disable_interrupt();
+}
+
+static inline uint64_t interrupt_status()
+{
+    uint64_t ret;
+    asm volatile("mrs   %0, daif" : "=r"(ret));
+    return ret;
+}
+
+static inline uint64_t current_exception_level()
+{
+    uint64_t ret;
+    asm volatile("mrs   %0, CurrentEL" : "=r"(ret));
+    return ret;
 }
 
 #endif

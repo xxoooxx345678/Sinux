@@ -60,9 +60,8 @@ void *memcpy(void *dest, const void *src, size_t len)
 {
     char *dest_tmp = (char *)dest;
     const char *src_tmp = (const char *)src;
-    while (*src_tmp)
+    while (len--)
         *dest_tmp++ = *src_tmp++;
-    *dest_tmp = 0;
     return dest;
 }
 

@@ -1,6 +1,8 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <stddef.h>
+
 typedef struct list_head {
 	struct list_head *next, *prev;
 }list_head_t;
@@ -105,5 +107,22 @@ static inline int list_empty(const struct list_head *head)
  */
 #define list_for_each(pos, head) \
 	for (pos = (head)->next; !list_is_head(pos, (head)); pos = pos->next)
+
+/**
+ * list_size - return the size of list
+ * @head: the list to test.
+ */
+static inline size_t list_size(const struct list_head *head)
+{
+	size_t ret = 0;
+	struct list_head *it;
+	list_for_each(it, head)
+	{
+		++ret;
+	}
+
+	return ret;
+
+}
 
 #endif

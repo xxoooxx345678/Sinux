@@ -14,6 +14,8 @@
 #define AUX_MU_STAT     ((volatile unsigned int *)(MMIO_BASE + 0x00215064))
 #define AUX_MU_BAUD     ((volatile unsigned int *)(MMIO_BASE + 0x00215068))
 
+int echo = 1;
+
 char uart_tx_buffer[MAX_BUF_SIZE] = {0};
 uint16_t uart_tx_buffer_w_idx = 0;
 uint16_t uart_tx_buffer_r_idx = 0; 
@@ -113,18 +115,22 @@ char uart_getc()
     r = (char)(*AUX_MU_IO);
 
     /* echo back */
-    if (r == '\r')
+    if (echo)
     {
-        uart_printf("\r\r\n");
-        do
+        if (r == '\r')
         {
-            asm volatile("nop");
-        } while (!(*AUX_MU_LSR & 0x40)); // wait for output success Transmitter idle
+            uart_printf("\r\r\n");
+            do
+            {
+                asm volatile("nop");
+            } while (!(*AUX_MU_LSR & 0x40)); // wait for output success Transmitter idle
+        }
+        else if (r == '\x7f') // backspace
+            uart_printf("\b \b");
+        else
+            uart_putc(r);
     }
-    else if (r == '\x7f') // backspace
-        uart_printf("\b \b");
-    else
-        uart_putc(r);
+
     /* convert carriage return to newline */
     return r == '\r' ? '\n' : r;
 }
@@ -189,8 +195,10 @@ static void uart_tx_interrupt_handler()
         return;
     }
 
+    CRITICAL_SECTION_START;
     uart_putc(uart_tx_buffer[uart_tx_buffer_r_idx++]);
     uart_tx_buffer_r_idx %= MAX_BUF_SIZE;
+    CRITICAL_SECTION_END;
 
     // unmasks the interrupt line to get the next interrupt at the end of the task.
     uart_enable_tx_interrupt(); 
@@ -199,8 +207,10 @@ static void uart_tx_interrupt_handler()
 
 static void uart_rx_interrupt_handler()
 {
+    CRITICAL_SECTION_START;
     uart_rx_buffer[uart_rx_buffer_w_idx++] = uart_getc();
     uart_rx_buffer_w_idx %= MAX_BUF_SIZE;
+    CRITICAL_SECTION_END;
 
     // unmasks the interrupt line to get the next interrupt at the end of the task.
     uart_enable_tx_interrupt(); 
@@ -209,8 +219,10 @@ static void uart_rx_interrupt_handler()
 
 void uart_async_putc(char c)
 {
+    CRITICAL_SECTION_START;
     uart_tx_buffer[uart_tx_buffer_w_idx++] = c;
     uart_tx_buffer_w_idx %= MAX_BUF_SIZE;
+    CRITICAL_SECTION_END;
 
     uart_enable_tx_interrupt();
 }
@@ -233,8 +245,10 @@ char uart_async_getc()
     while (uart_rx_buffer_r_idx == uart_rx_buffer_w_idx)
         asm volatile("nop");
 
+    CRITICAL_SECTION_START;
     char ret = uart_rx_buffer[uart_rx_buffer_r_idx++];
     uart_rx_buffer_r_idx %= MAX_BUF_SIZE;
+    CRITICAL_SECTION_END;
 
     return ret;
 }
@@ -439,3 +453,12 @@ static unsigned int sprintf(char *dst, char *fmt, ...)
     return r;
 }
 
+void uart_enable_echo()
+{
+    echo = 1;
+}
+
+void uart_disable_echo()
+{
+    echo = 0;
+}

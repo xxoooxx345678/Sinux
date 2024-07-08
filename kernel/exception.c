@@ -1,5 +1,7 @@
 #include <kernel/exception.h>
 
+extern thread_t *cur_thread;
+
 LIST_HEAD(irq_list);
 
 int curr_irq_prio = 32768;
@@ -16,8 +18,8 @@ void irq_add(irq_callback callback, int prio)
     irq->prio = prio;
 
     struct list_head *it = NULL;
+    CRITICAL_SECTION_START; // critical section start
 
-    disable_interrupt(); // critical section start
     list_for_each(it, &irq_list)
     {
         if (((irq_t *)it)->prio > irq->prio)
@@ -30,55 +32,82 @@ void irq_add(irq_callback callback, int prio)
     // highest priority
     if (list_is_head(it, &irq_list))
         list_add_tail(&irq->listhead, &irq_list);
-    enable_interrupt(); // critical section end
+    CRITICAL_SECTION_END; // critical section end
 }
 
 void irq_pop()
 {
     while (!list_empty(&irq_list))
     {
+        CRITICAL_SECTION_START;
         irq_t *next_irq = (irq_t *)irq_list.next;
 
         // Current irq has higher prio
         if (curr_irq_prio <= next_irq->prio)
+        {
+            CRITICAL_SECTION_END;
             return;
+        }
 
         // New irq has higher prio
-        disable_interrupt(); // critical section start
         list_del_entry(irq_list.next);
-        enable_interrupt(); // critical section end
 
         int prev_irq_prio = curr_irq_prio;
         curr_irq_prio = next_irq->prio;
+        CRITICAL_SECTION_END;
 
         next_irq->callback();
 
+        CRITICAL_SECTION_START;
         curr_irq_prio = prev_irq_prio;
+        free(next_irq);
+        CRITICAL_SECTION_END;
     }
 }
 
-void sync_el0_64_handler()
+void sync_el0_64_handler(trapframe_t *tf)
 {
-    unsigned long spsr_el1;
-    unsigned long elr_el1;
-    unsigned long esr_el1;
+    enable_interrupt();
+    cur_thread->trapframe = tf;
 
-    asm volatile("mrs %0, SPSR_EL1\n"
-                 : "=r"(spsr_el1)
-                 :
-                 : "memory");
-    asm volatile("mrs %0, ELR_EL1\n"
-                 : "=r"(elr_el1)
-                 :
-                 : "memory");
-    asm volatile("mrs %0, ESR_EL1\n"
-                 : "=r"(esr_el1)
-                 :
-                 : "memory");
+    uint64_t syscall_no = cur_thread->trapframe->x8;
 
-    uart_printf("+-------------------------------+\n");
-    uart_printf("| SPSR_EL1:\t0x%x\t|\n| ESR_EL1:\t0x%x\t|\n| ELR_EL1:\t0x%x\t|\n", spsr_el1, esr_el1, elr_el1);
-    uart_printf("+-------------------------------+\n");
+    switch (syscall_no)
+    {
+    case 0:
+        cur_thread->trapframe->x0 = sys_getpid();
+        break;
+    case 1:
+        cur_thread->trapframe->x0 = sys_uartread((char *)cur_thread->trapframe->x0, (size_t)cur_thread->trapframe->x1);
+        break;
+    case 2:
+        cur_thread->trapframe->x0 = sys_uartwrite((char *)cur_thread->trapframe->x0, (size_t)cur_thread->trapframe->x1);
+        break;
+    case 3:
+        cur_thread->trapframe->x0 = sys_exec((char *)cur_thread->trapframe->x0, (char **)cur_thread->trapframe->x1);
+        break;
+    case 4:
+        cur_thread->trapframe->x0 = sys_fork();
+        break;
+    case 5:
+        sys_exit();
+        break;
+    case 6:
+        cur_thread->trapframe->x0 = sys_mbox_call((unsigned char)cur_thread->trapframe->x0, (unsigned int *)cur_thread->trapframe->x1);
+        break;
+    case 7:
+        sys_kill((int)cur_thread->trapframe->x0);
+        break;
+    case 8:
+        sys_signal((int)cur_thread->trapframe->x0, (void (*)(int))cur_thread->trapframe->x1);
+        break;
+    case 9:
+        sys_sigkill((int)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
+        break;
+    case 30:
+        sys_sigreturn();
+        break;
+    }
 }
 
 void irq_handler()
@@ -88,6 +117,8 @@ void irq_handler()
         timer_interrupt_disable();
         irq_add(timer_pop, 0);
         irq_pop();
+
+        schedule();
     }
 
     if (*CORE0_INTERRUPT_SOURCE & INTERRUPT_SOURCE_GPU) // GPU interrupt
