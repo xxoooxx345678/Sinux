@@ -87,11 +87,6 @@ void idle()
     }
 }
 
-thread_t *get_current_thread()
-{
-    return cur_thread;
-}
-
 thread_t *thread_create(program_t entry_point, const char *name)
 {
     CRITICAL_SECTION_START;

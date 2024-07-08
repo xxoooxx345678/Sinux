@@ -54,7 +54,6 @@ int sys_fork()
     child_thread->context.lr = &&out;
     child_thread->context.fp = child_thread->kernel_sp + (cur_thread->context.fp - (uint64_t)cur_thread->kernel_sp);
     child_thread->context.sp = child_thread->kernel_sp + (cur_thread->context.sp - (uint64_t)cur_thread->kernel_sp);
-
     child_thread->trapframe = (trapframe_t *)((uint64_t)child_thread->kernel_sp + (uint64_t)cur_thread->trapframe - (uint64_t)cur_thread->kernel_sp);
     child_thread->trapframe->sp_el0 = child_thread->user_sp + child_thread->trapframe->sp_el0 - cur_thread->user_sp;
 

@@ -2,6 +2,8 @@
 
 #define TBD signal_undefined_default_handler
 
+extern thread_t *cur_thread;
+
 signal_handler_t default_signal_handler_table[MAX_SIGNAL_HANDLER_CNT] = {
     TBD,
     TBD,
@@ -39,7 +41,7 @@ signal_handler_t default_signal_handler_table[MAX_SIGNAL_HANDLER_CNT] = {
 
 void registered_signal_handler_wrapper()
 {
-    get_current_thread()->handling_signal(0);
+    cur_thread->handling_signal(0);
 
     asm volatile("mov x8,30\n");
     asm volatile("svc 0\n");

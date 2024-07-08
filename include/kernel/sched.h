@@ -83,7 +83,6 @@ void sched_enable();
 void schedule();
 void idle();
 
-thread_t *get_current_thread();
 thread_t *thread_create(program_t entry_point, const char *name);
 int thread_exec(const char *name, char *const argv[]);
 void thread_handle_signal();
