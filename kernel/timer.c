@@ -1,6 +1,10 @@
 #include <kernel/timer.h>
+#include <kernel/exception.h>
+#include <mm/mmu.h>
+#include <mm/mm.h>
+#include <string.h>
 
-#define CORE0_TIMER_IRQ_CTRL 0x40000040
+#define CORE0_TIMER_IRQ_CTRL PHYS_TO_VIRT(0x40000040)
 
 LIST_HEAD(timer_list);
 
@@ -44,7 +48,7 @@ void timer_add(timer_callback callback, char *arg, int bytick, uint64_t timeout)
 
     // set timeout
     timer->timeout = get_current_tick() + (bytick ? timeout : timeout * get_clock_freq());
-    struct list_head *it = NULL;
+    list_head_t *it = NULL;
 
     CRITICAL_SECTION_START; 
     list_for_each(it, &timer_list)
@@ -113,7 +117,7 @@ static void set_timer_interrupt_tick(uint64_t tick)
 static size_t timer_list_get_size()
 {
     int r = 0;
-    struct list_head *it = NULL;
+    list_head_t *it = NULL;
     list_for_each(it, &timer_list)
     {
         r++;

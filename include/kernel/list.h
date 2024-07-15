@@ -109,6 +109,19 @@ static inline int list_empty(const struct list_head *head)
 	for (pos = (head)->next; !list_is_head(pos, (head)); pos = pos->next)
 
 /**
+ * list_for_each_safe - iterate over list nodes and allow deletes
+ * @node: list_head pointer used as iterator
+ * @safe: list_head pointer used to store info for next entry in list
+ * @head: pointer to the head of the list
+ *
+ * The current node (iterator) is allowed to be removed from the list. Any
+ * other modifications to the the list will cause undefined behavior.
+ */
+#define list_for_each_safe(node, safe, head)                     \
+    for (node = (head)->next, safe = node->next; node != (head); \
+         node = safe, safe = node->next)
+
+/**
  * list_size - return the size of list
  * @head: the list to test.
  */

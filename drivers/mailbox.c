@@ -1,4 +1,8 @@
 #include <drivers/mailbox.h>
+#include <drivers/gpio.h>
+#include <drivers/uart.h>
+#include <kernel/exception.h>
+#include <mm/mmu.h>
 
 /* channels */
 #define MBOX_CH_POWER   0
@@ -35,7 +39,7 @@
 int mbox_call(unsigned char ch, unsigned int *mbox)
 {
     CRITICAL_SECTION_START;
-    unsigned int r = (((unsigned int)((unsigned long)mbox)&~0xF) | (ch&0xF));
+    unsigned long r = (((unsigned long)((unsigned long)mbox)&~0xF) | (ch&0xF));
     /* wait until we can write to the mailbox */
     do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_FULL);
     /* write the address of our message to the mailbox with channel identifier */
@@ -45,7 +49,7 @@ int mbox_call(unsigned char ch, unsigned int *mbox)
         /* is there a response? */
         do{asm volatile("nop");}while(*MBOX_STATUS & MBOX_EMPTY);
         /* is it a response to our message? */
-        if(r == *MBOX_READ)
+        if(r == PHYS_TO_VIRT(*MBOX_READ))
             /* is it a valid successful response? */
         {
             CRITICAL_SECTION_END;

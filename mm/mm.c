@@ -1,9 +1,13 @@
 #include <mm/mm.h>
+#include <mm/mmu.h>
+#include <kernel/list.h>
+#include <kernel/exception.h>
+#include <stddef.h>
+#include <drivers/uart.h>
 
 // #define DEMO
 
-#define PAGE_FRAME_SIZE 0x1000
-#define PAGE_FRAME_MAX_ORDER 8
+#define PAGE_FRAME_MAX_ORDER 10
 #define CHUNK_SLOT_TYPE_COUNT 9
 #define MEMORY_ALIGN 4
 
@@ -44,13 +48,19 @@ static int pf_address_to_index(void *address)
     return (int)((address - pf_start) / PAGE_FRAME_SIZE);
 }
 
+static int valid_page_frame(void *addr)
+{
+    int index = pf_address_to_index(addr);
+    return (index < pf_count);    
+}
+
 void memory_reserve(void *start, void *end)
 {
     start = (void *)((uint64_t)start / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
     end = (void *)(((uint64_t) end + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE * PAGE_FRAME_SIZE);
 
     for (void *tmp = start; tmp < end; tmp = (void *)((uint64_t)tmp + PAGE_FRAME_SIZE))
-        pf_entries[pf_address_to_index(tmp)].status = ALLOCATED;
+        pf_entries[pf_address_to_index(tmp)].status = RESERVED;
 }
 
 void pf_init()
@@ -62,12 +72,14 @@ void pf_init()
         pf_entries[i] = (pf_entry_t){
             .index = i,
             .order = 0,
+            .ref_count = 0,
             .status = FREE
         };
     }
 
     // Reserve Pages
-    memory_reserve(0x0000, 0x1000);
+    memory_reserve(PHYS_TO_VIRT(0x0000), PHYS_TO_VIRT(0x1000));
+    memory_reserve(PHYS_TO_VIRT(0x1000), PHYS_TO_VIRT(0x5000));
     memory_reserve(__image_start, __image_end);
     memory_reserve(cpio_start, cpio_end);
     memory_reserve(__simple_allocator_start, __simple_allocator_end);
@@ -253,7 +265,6 @@ void cs_free(void *address)
 
 void *malloc(size_t size)
 {
-    CRITICAL_SECTION_START;
     void *ret;
     if (size < PAGE_FRAME_SIZE)
     {
@@ -271,23 +282,20 @@ void *malloc(size_t size)
 #endif
         ret = pf_allocate((size + PAGE_FRAME_SIZE - 1) / PAGE_FRAME_SIZE);
     }
-    CRITICAL_SECTION_END;
     return ret;
 }
 
 void free(void *address)
 {
-    CRITICAL_SECTION_START;
     int index = pf_address_to_index(address);
 
-    if (pf_entries[index].status != FREE)
+    if (pf_entries[index].status == ALLOCATED && index < pf_count)
     {
         if (cs_entries[index].status == FREE)
             pf_free(address);
         else
             cs_free(address);
     }
-    CRITICAL_SECTION_END;
 }
 
 void memory_init(void *start, void *end)
@@ -297,6 +305,33 @@ void memory_init(void *start, void *end)
 
     cs_init();
     pf_init();
+}
+
+void inc_ref_count(void *addr)
+{
+    if (!valid_page_frame(addr))
+        return;
+    pf_entries[pf_address_to_index(addr)].ref_count++;
+}
+
+void dec_ref_count(void *addr)
+{
+    if (!valid_page_frame(addr))
+        return;
+    pf_entries[pf_address_to_index(addr)].ref_count--;
+}
+
+size_t get_ref_count(void *addr)
+{
+    if (!valid_page_frame(addr))
+        return (size_t)-1;
+    return pf_entries[pf_address_to_index(addr)].ref_count;
+}
+
+int copyable_page_frame(void *addr)
+{
+    int index = pf_address_to_index(addr);
+    return valid_page_frame(addr) && pf_entries[index].status != RESERVED;
 }
 
 void page_frame_allocator_test()

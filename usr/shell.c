@@ -1,4 +1,11 @@
 #include <usr/shell.h>
+#include <drivers/uart.h>
+#include <drivers/mailbox.h>
+#include <mm/mm.h>
+#include <fs/cpio.h>
+#include <kernel/timer.h>
+#include <string.h>
+#include <stddef.h>
 
 static void timer_test()
 {

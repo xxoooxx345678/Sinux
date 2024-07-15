@@ -1,6 +1,8 @@
 #ifndef TRAPFRAME_H
 #define TRAPFRAME_H
 
+#include <stddef.h>
+
 typedef struct trapframe
 {
     uint64_t x0;

@@ -2,14 +2,12 @@
 #define TIMER_H
 
 #include <kernel/list.h>
-#include <kernel/exception.h>
-#include <string.h>
 #include <stddef.h>
 
 typedef void (*timer_callback)(char *arg);
 
 typedef struct timer_t {
-    struct list_head listhead;
+    list_head_t listhead;
     timer_callback callback;
     char *arg;
     uint64_t timeout;

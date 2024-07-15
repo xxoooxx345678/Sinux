@@ -1,4 +1,6 @@
+#include <mm/mmu.h>
 #include <drivers/dtb.h>
+#include <utils.h>
 
 // manipulate device tree with dtb file format
 #define FDT_BEGIN_NODE 0x00000001
@@ -100,8 +102,8 @@ void dtb_callback_show_tree(uint32_t node_type, char *name, void *data, uint32_t
 void dtb_callback_initramfs(uint32_t node_type, char *name, void *value, uint32_t name_size)
 {
     if (node_type == FDT_PROP && strcmp(name, "linux,initrd-start") == 0)
-        cpio_start = (void *)((unsigned long long)endian_big2little(*(uint32_t *)value));
+        cpio_start = (void *)PHYS_TO_VIRT((unsigned long long)endian_big2little(*(uint32_t *)value));
 
     if (node_type == FDT_PROP && strcmp(name, "linux,initrd-end") == 0)
-        cpio_end = (void *)((unsigned long long)endian_big2little(*(uint32_t *)value));
+        cpio_end = (void *)PHYS_TO_VIRT((unsigned long long)endian_big2little(*(uint32_t *)value));
 }

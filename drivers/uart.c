@@ -1,4 +1,9 @@
 #include <drivers/uart.h>
+#include <drivers/mmio.h>
+#include <drivers/gpio.h>
+#include <kernel/exception.h>
+#include <mm/mmu.h>
+#include <stddef.h>
 
 /* Auxilary mini UART registers */
 #define AUX_ENABLE      ((volatile unsigned int *)(MMIO_BASE + 0x00215004))

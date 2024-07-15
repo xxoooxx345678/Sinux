@@ -52,6 +52,9 @@ run_display: $(IMAGE).img
 dbg: $(IMAGE).img 
 	$(QEMU) -machine $(MACHINE) -kernel $(IMAGE).img -initrd $(CPIO_FILE) -dtb $(DTB_FILE) -display none -serial null -serial stdio -s -S
 
-.PHONY: clean
+.PHONY: clean gdb
 clean:
 	rm -rf $(OBJ_DIR) *.img *.elf 
+
+gdb:
+	gdb-multiarch -x tools/debug.cmd

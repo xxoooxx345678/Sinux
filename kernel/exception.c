@@ -1,10 +1,30 @@
 #include <kernel/exception.h>
+#include <drivers/uart.h>
+#include <drivers/mmio.h>
+#include <kernel/timer.h>
+#include <kernel/syscall.h>
+#include <kernel/trapframe.h>
+#include <kernel/sched.h>
+#include <mm/mm.h>
+#include <mm/vm.h>
+#include <stddef.h>
 
 extern thread_t *cur_thread;
+
+static int lock = 0;
 
 LIST_HEAD(irq_list);
 
 int curr_irq_prio = 32768;
+
+exception_t get_current_exception()
+{
+    exception_t ex;
+
+    asm volatile("mrs %0, esr_el1":"=r"(ex));
+
+    return ex;
+}
 
 void irq_add(irq_callback callback, int prio)
 {
@@ -17,7 +37,7 @@ void irq_add(irq_callback callback, int prio)
     irq->callback = callback;
     irq->prio = prio;
 
-    struct list_head *it = NULL;
+    list_head_t *it = NULL;
     CRITICAL_SECTION_START; // critical section start
 
     list_for_each(it, &irq_list)
@@ -65,7 +85,7 @@ void irq_pop()
     }
 }
 
-void sync_el0_64_handler(trapframe_t *tf)
+static void syscall_handler(trapframe_t *tf)
 {
     enable_interrupt();
     cur_thread->trapframe = tf;
@@ -104,8 +124,27 @@ void sync_el0_64_handler(trapframe_t *tf)
     case 9:
         sys_sigkill((int)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
         break;
+    case 10:
+        cur_thread->trapframe->x0 = sys_mmap((void *)cur_thread->trapframe->x0, (size_t)(void *)cur_thread->trapframe->x1, (int)cur_thread->trapframe->x2, (int)cur_thread->trapframe->x3, (int)cur_thread->trapframe->x4, (int)cur_thread->trapframe->x5);
+        break;
     case 30:
         sys_sigreturn();
+        break;
+    }
+}
+
+void sync_el0_64_handler(trapframe_t *tf)
+{
+    exception_t ex = get_current_exception();
+
+    switch (ex.ec)
+    {
+    case SVC_INS_EXEC:
+        syscall_handler(tf);
+        break;
+    case DATA_ABORT_LOWER:
+    case INS_ABORT_LOWER:
+        page_fault_handler(&ex);
         break;
     }
 }
@@ -135,5 +174,44 @@ void irq_handler()
 
 void invalid_exception_handler(unsigned long long x0)
 {
-    uart_printf("invalid exception : 0x%x\n", x0);
+    exception_t ex = get_current_exception();
+    int level;
+    uart_printf("From: 0x%x\n", x0);
+    uart_printf("Exception level: %d\n", current_exception_level());
+    uart_printf("ISS: 0x%x\n", ex.iss);
+
+    switch (ex.ec)
+    {
+    case 0b011000:
+        uart_printf("Trapped MSR, MRS, or System instruction execution\n");
+        break;
+    case 0b011001:
+        uart_printf("Trapped access to SVE functionality\n");
+        break;
+    case 0b100000:
+        uart_printf("Instruction Abort from a lower Exception Level\n");
+        break;
+    case 0b100001:
+        uart_printf("Instruction Abort taken without a change in Exception level\n");
+        break;
+    case 0b100101:
+        uart_printf("Data Abort taken without a change in Exception level (invalid data access)\n");
+        break;
+    default:
+        uart_printf("EC: 0x%x\n", ex.ec);
+        break;
+    }
+}
+
+void critical_section_end()
+{
+    --lock;
+    if (lock == 0)
+        enable_interrupt();
+}
+
+void critical_section_start()
+{
+    ++lock;
+    disable_interrupt();
 }

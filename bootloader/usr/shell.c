@@ -1,4 +1,8 @@
 #include <usr/shell.h>
+#include <drivers/uart.h>
+#include <string.h>
+#include <stddef.h>
+#include <load.h>
 
 void shell()
 {

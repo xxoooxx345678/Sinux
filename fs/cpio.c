@@ -1,4 +1,7 @@
 #include <fs/cpio.h>
+#include <drivers/uart.h>
+#include <utils.h>
+#include <string.h>
 
 #define CPIO_NEWC_HEADER_MAGIC "070701"    // big endian
 

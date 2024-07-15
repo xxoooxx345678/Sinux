@@ -1,10 +1,6 @@
 #ifndef CPIO_H
 #define CPIO_H
 
-#include <drivers/uart.h>
-#include <utils.h>
-#include <string.h>
-
 struct cpio_newc_header 
 {
     char c_magic[6];            //magic   The string	"070701".

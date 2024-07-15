@@ -1,4 +1,6 @@
 #include <kernel/signal.h>
+#include <kernel/sched.h>
+#include <drivers/uart.h>
 
 #define TBD signal_undefined_default_handler
 
@@ -41,9 +43,8 @@ signal_handler_t default_signal_handler_table[MAX_SIGNAL_HANDLER_CNT] = {
 
 void registered_signal_handler_wrapper()
 {
-    cur_thread->handling_signal(0);
-
-    asm volatile("mov x8,30\n");
+    asm volatile("blr x16");
+    asm volatile("mov x8, 30\n");
     asm volatile("svc 0\n");
 }
 

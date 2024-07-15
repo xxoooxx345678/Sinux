@@ -1,4 +1,12 @@
 #include <kernel/sched.h>
+#include <kernel/timer.h>
+#include <kernel/exception.h>
+#include <drivers/uart.h>
+#include <fs/cpio.h>
+#include <mm/vm.h>
+#include <mm/mmu.h>
+#include <mm/mm.h>
+#include <string.h>
 
 extern signal_handler_t default_signal_handler_table[MAX_SIGNAL_HANDLER_CNT];
 
@@ -48,8 +56,9 @@ static void kill_zombies()
         if (thread_ptr->status == DEAD)
         {
             list_del_entry(it);
+            clear_mapping(thread_ptr);
+            free(PHYS_TO_VIRT(thread_ptr->context.ttbr0_el1));
             free(thread_ptr->kernel_sp);
-            free(thread_ptr->user_sp);
             thread_ptr->status = OPEN;
         }
     }
@@ -105,11 +114,14 @@ thread_t *thread_create(program_t entry_point, const char *name)
     strcpy(thread_ptr->name, name);
     thread_ptr->entry_point = entry_point;
     thread_ptr->status = READY;
-    thread_ptr->user_sp = malloc(USTACK_SIZE);
     thread_ptr->kernel_sp = malloc(KSTACK_SIZE);
     thread_ptr->context.lr = entry_point;
     thread_ptr->context.sp = (uint64_t)thread_ptr->kernel_sp + KSTACK_SIZE;
     thread_ptr->context.fp = thread_ptr->context.sp;
+
+    INIT_LIST_HEAD(&thread_ptr->vma);
+    thread_ptr->context.ttbr0_el1 = VIRT_TO_PHYS((uint64_t)malloc(PAGE_FRAME_SIZE));
+
     memset(thread_ptr->registered_signal_handler, 0, sizeof(signal_handler_t) * MAX_SIGNAL_HANDLER_CNT);
     memset(thread_ptr->signal_pending_count, 0, sizeof(size_t) * MAX_SIGNAL_HANDLER_CNT);
 
@@ -126,11 +138,11 @@ int thread_exec(const char *name, char *const argv[])
     
     if (program_start == NULL)
         goto fail;
+    CRITICAL_SECTION_START;
 
-    cur_thread->user_sp = malloc(USTACK_SIZE);
     cur_thread->kernel_sp = malloc(KSTACK_SIZE);
-    cur_thread->context.sp = (uint64_t)cur_thread->user_sp + USTACK_SIZE;
-    cur_thread->context.fp = cur_thread->context.sp;
+    cur_thread->context.sp = 0xfffffffff000;
+    cur_thread->context.fp = 0xfffffffff000;
 
     /* Don't know why it is buggy, offset of some instructions is not correct! */
     // cur_thread->entry_point = (program_t)program_start;
@@ -138,8 +150,22 @@ int thread_exec(const char *name, char *const argv[])
     cur_thread->program_size = get_file_size(name);
     cur_thread->entry_point = malloc(cur_thread->program_size);
     memcpy(cur_thread->entry_point, program_start, cur_thread->program_size);
-    
-    run_program(cur_thread->entry_point, cur_thread->user_sp + USTACK_SIZE, cur_thread->kernel_sp + KSTACK_SIZE);
+
+    clear_mapping(cur_thread);
+
+    /* text section mapping */
+    mappages(cur_thread, 0, cur_thread->program_size, (uint64_t)VIRT_TO_PHYS((char *)cur_thread->entry_point), PROT_READ | PROT_WRITE | PROT_EXEC);
+    /* stack section mapping */
+    mappages(cur_thread, 0xffffffffb000, 0x4000, 0, PROT_READ | PROT_WRITE | PROT_EXEC);
+    /* mailbox mapping */
+    mappages(cur_thread, 0x3c000000, 0x3000000, 0x3c000000, PROT_READ | PROT_WRITE);
+    /* signal handler mapping */
+    mappages(cur_thread, USER_SIG_WRAPPER_VIRT_ADDR_ALIGNED, PAGE_FRAME_SIZE * 2, (uint64_t)VIRT_TO_PHYS(registered_signal_handler_wrapper), PROT_READ | PROT_EXEC);
+    /* signal user stack mapping */
+    mappages(cur_thread, USER_SIG_STACK_VIRT_ADDR_ALIGNED, PAGE_FRAME_SIZE, 0, PROT_READ | PROT_WRITE | PROT_EXEC);
+
+    CRITICAL_SECTION_END;
+    run_program(0, 0xfffffffff000, cur_thread->kernel_sp + KSTACK_SIZE);
 fail:
     return -1;
 }
@@ -161,10 +187,10 @@ void thread_handle_signal()
 
             if (cur_thread->registered_signal_handler[i] != NULL)
             {
-                cur_thread->signal_handler_stack = malloc(USTACK_SIZE);
                 cur_thread->handling_signal = cur_thread->registered_signal_handler[i];
 
-                run_program(registered_signal_handler_wrapper, cur_thread->signal_handler_stack + USTACK_SIZE, cur_thread->signal_context.sp);
+                asm volatile("mov x16, %0"::"r"(cur_thread->handling_signal));
+                run_program(USER_SIG_WRAPPER_VIRT_ADDR_ALIGNED + ((uint64_t)registered_signal_handler_wrapper % PAGE_FRAME_SIZE), USER_SIG_STACK_VIRT_ADDR_ALIGNED + PAGE_FRAME_SIZE, cur_thread->signal_context.sp);
             }
             else
             {
@@ -182,4 +208,5 @@ void thread_exit()
     CRITICAL_SECTION_START;
     cur_thread->status = DEAD;
     CRITICAL_SECTION_END;
+    while (1);
 }

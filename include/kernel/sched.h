@@ -3,20 +3,13 @@
 
 #include <kernel/signal.h>
 #include <kernel/list.h>
-#include <kernel/timer.h>
 #include <kernel/trapframe.h>
-#include <drivers/uart.h>
-#include <mm/mm.h>
-#include <string.h>
 #include <stddef.h>
 
 #define MAX_THREAD_COUNT        256
 #define MAX_THREAD_NAME_LEN     32
 #define USTACK_SIZE             0x1000
 #define KSTACK_SIZE             0x1000
-#define MAX_SIGNAL_HANDLER_CNT  32
-
-typedef void (*signal_handler_t)(int);
 
 // typedef void (*program_t)();
 typedef char * program_t;
@@ -43,6 +36,7 @@ typedef struct thread_context_t {
     uint64_t fp;
     uint64_t lr;
     uint64_t sp;
+    void *ttbr0_el1;
 } thread_context_t;
 
 typedef struct thread {
@@ -59,22 +53,23 @@ typedef struct thread {
     program_t entry_point;
     size_t program_size;
 
-    /* Thread status*/
+    /* Thread status */
     int pid;
     thread_status status;
 
-    /* Stack pointers*/
-    void *user_sp;
+    /* Stack pointer */
     void *kernel_sp;
 
     /* Trapframe */
     trapframe_t *trapframe;
 
+    /* Memory management */
+    list_head_t vma;
+
     /* Signal */
     signal_handler_t registered_signal_handler[MAX_SIGNAL_HANDLER_CNT];
     size_t signal_pending_count[MAX_SIGNAL_HANDLER_CNT];
     signal_handler_t handling_signal;
-    void *signal_handler_stack;
     thread_context_t signal_context;
 } thread_t;
 

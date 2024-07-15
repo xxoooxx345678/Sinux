@@ -1,11 +1,6 @@
 #ifndef UART_H
 #define UART_H
 
-#include <drivers/mmio.h>
-#include <drivers/gpio.h>
-#include <kernel/exception.h>
-#include <stddef.h>
-
 #define MAX_BUF_SIZE    0x100
 
 void uart_init();

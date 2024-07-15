@@ -2,7 +2,6 @@
 #define DTB_H
 
 #include <stddef.h>
-#include <utils.h>
 
 // stored as big endian
 struct fdt_header

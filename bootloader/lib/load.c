@@ -1,4 +1,6 @@
 #include <load.h>
+#include <drivers/uart.h>
+#include <string.h>
 
 #define NEW_BL_START 0x60000
 

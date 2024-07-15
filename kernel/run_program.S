@@ -11,4 +11,10 @@ run_program:
     msr     spsr_el1, xzr
     msr     sp_el0, x1
     mov     sp, x2
+
+    dsb ish // ensure write has completed
+    tlbi vmalle1is // invalidate all TLB entries
+    dsb ish // ensure completion of TLB invalidatation
+    isb // clear pipeline
+    
     eret
