@@ -7,6 +7,8 @@
 #include <drivers/uart.h>
 #include <drivers/mailbox.h>
 #include <fs/cpio.h>
+#include <fs/vfs.h>
+#include <dev/framebuffer.h>
 
 extern thread_t *cur_thread;
 extern thread_t threads[MAX_THREAD_COUNT];
@@ -133,4 +135,95 @@ void sys_sigreturn()
 void *sys_mmap(void* addr, size_t len, int prot, int flags, int fd, int file_offset)
 {
     return mappages(cur_thread, (uint64_t)addr, len, 0, prot);
+}
+
+int sys_open(const char *pathname, int flags)
+{
+    char abs_path[MAX_PATHNAME_LEN];
+    resolve_path(pathname, cur_thread->cwd, abs_path);
+
+    for (int i = 0; i < MAX_FD_NUM; ++i)
+        if (!cur_thread->fdt[i])
+        {
+            if (vfs_open(abs_path, flags, &cur_thread->fdt[i]) < 0)
+                return -1;
+            return i;
+        }
+    return -1;
+}
+
+int sys_close(int fd)
+{
+    if (cur_thread->fdt[fd])
+    {
+        vfs_close(cur_thread->fdt[fd]);
+        cur_thread->fdt[fd] = NULL;
+        return 0;
+    }
+
+    return -1;
+}
+
+long sys_write(int fd, const void *buf, unsigned long count)
+{
+    if (cur_thread->fdt[fd])
+        return vfs_write(cur_thread->fdt[fd], buf, count);
+    
+    return -1;
+}
+
+long sys_read(int fd, void *buf, unsigned long count)
+{
+    if (cur_thread->fdt[fd])
+        return vfs_read(cur_thread->fdt[fd], buf, count);
+
+    return -1;
+}
+
+int sys_mkdir(const char *pathname, unsigned mode)
+{
+    char abs_path[MAX_PATHNAME_LEN];
+    resolve_path(pathname, cur_thread->cwd, abs_path);
+
+    return vfs_mkdir(abs_path);
+}
+
+int sys_mount(const char *src, const char *target, const char *filesystem, unsigned long flags, const void *data)
+{
+    char abs_path[MAX_PATHNAME_LEN];
+    resolve_path(target, cur_thread->cwd, abs_path);
+
+    return vfs_mount(abs_path, filesystem);
+}
+
+int sys_chdir(const char *path)
+{
+    char abs_path[MAX_PATHNAME_LEN];
+    resolve_path(path, cur_thread->cwd, abs_path);
+    strcpy(cur_thread->cwd, abs_path);
+
+    return 0;
+}
+
+long sys_lseek64(int fd, long offset, int whence)
+{
+    return vfs_lseek64(cur_thread->fdt[fd], offset, whence);
+}
+
+int sys_ioctl(int fd, unsigned long request, void *info)
+{
+    extern unsigned int width, height, pitch, isrgb; /* dimensions and channel order */
+
+    switch (request)
+    {
+    case 0:
+        struct framebuffer_info *fb_info = info;
+        fb_info->height = height;
+        fb_info->isrgb = isrgb;
+        fb_info->pitch = pitch;
+        fb_info->width = width;
+    break;
+    }
+
+    return 0;
 }

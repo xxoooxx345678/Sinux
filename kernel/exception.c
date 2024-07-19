@@ -119,13 +119,40 @@ static void syscall_handler(trapframe_t *tf)
         sys_kill((int)cur_thread->trapframe->x0);
         break;
     case 8:
-        sys_signal((int)cur_thread->trapframe->x0, (void (*)(int))cur_thread->trapframe->x1);
+        sys_signal((int)cur_thread->trapframe->x0, (signal_handler_t)cur_thread->trapframe->x1);
         break;
     case 9:
         sys_sigkill((int)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
         break;
     case 10:
         cur_thread->trapframe->x0 = sys_mmap((void *)cur_thread->trapframe->x0, (size_t)(void *)cur_thread->trapframe->x1, (int)cur_thread->trapframe->x2, (int)cur_thread->trapframe->x3, (int)cur_thread->trapframe->x4, (int)cur_thread->trapframe->x5);
+        break;
+    case 11:
+        cur_thread->trapframe->x0 = sys_open((char *)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
+        break;
+    case 12:
+        cur_thread->trapframe->x0 = sys_close((int)cur_thread->trapframe->x0);
+        break;
+    case 13:
+        cur_thread->trapframe->x0 = sys_write((int)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (unsigned long)cur_thread->trapframe->x2);
+        break;
+    case 14:
+        cur_thread->trapframe->x0 = sys_read((int)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (unsigned long)cur_thread->trapframe->x2);
+        break;
+    case 15:
+        cur_thread->trapframe->x0 = sys_mkdir((char *)cur_thread->trapframe->x0, (unsigned)cur_thread->trapframe->x1);
+        break;
+    case 16:
+        cur_thread->trapframe->x0 = sys_mount((char *)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (char *)cur_thread->trapframe->x2, (unsigned long)cur_thread->trapframe->x3, (void *)cur_thread->trapframe->x4);
+        break;
+    case 17:
+        cur_thread->trapframe->x0 = sys_chdir((char *)cur_thread->trapframe->x0);
+        break;
+    case 18:
+        cur_thread->trapframe->x0 = sys_lseek64((int)cur_thread->trapframe->x0, (long)cur_thread->trapframe->x1, (int)cur_thread->trapframe->x2);
+        break;
+    case 19:
+        cur_thread->trapframe->x0 = sys_ioctl((int)cur_thread->trapframe->x0, (unsigned long)cur_thread->trapframe->x1, (void *)cur_thread->trapframe->x2);
         break;
     case 30:
         sys_sigreturn();

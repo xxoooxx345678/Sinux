@@ -11,5 +11,6 @@ char *strcpy(char *dest, const char *src);
 void *memcpy(void *dest, const void *src, size_t len);
 int atoi(char *str);
 void *memset(void *s, int c, size_t n);
+char *strtok(char *s, char *delim);
 
 #endif

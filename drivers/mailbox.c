@@ -33,6 +33,8 @@
 #define MBOX_EMPTY      0x40000000
 #define MBOX_REQUEST    0x00000000
 
+unsigned int __attribute__((aligned(16))) framebuffer_mbox[36];
+
 /**
  * Make a mailbox call. Returns 0 on failure, non-zero on success
  */
@@ -115,4 +117,69 @@ int get_arm_memory_info(unsigned int *base_addr, unsigned int *size)
         uart_puts("Unable to query serial!");
         return -1;
     }
+}
+
+void init_framebuffer()
+{
+    extern unsigned int width, height, pitch, isrgb; /* dimensions and channel order */
+    extern unsigned char *lfb;                       /* raw frame buffer address */
+
+    // The following code is for mailbox initialize used in lab7.
+    framebuffer_mbox[0] = 35 * 4;
+    framebuffer_mbox[1] = MBOX_REQUEST;
+
+    framebuffer_mbox[2] = 0x48003; // set phy wh
+    framebuffer_mbox[3] = 8;
+    framebuffer_mbox[4] = 8;
+    framebuffer_mbox[5] = 1024; // FrameBufferInfo.width
+    framebuffer_mbox[6] = 768;  // FrameBufferInfo.height
+
+    framebuffer_mbox[7] = 0x48004; // set virt wh
+    framebuffer_mbox[8] = 8;
+    framebuffer_mbox[9] = 8;
+    framebuffer_mbox[10] = 1024; // FrameBufferInfo.virtual_width
+    framebuffer_mbox[11] = 768;  // FrameBufferInfo.virtual_height
+
+    framebuffer_mbox[12] = 0x48009; // set virt offset
+    framebuffer_mbox[13] = 8;
+    framebuffer_mbox[14] = 8;
+    framebuffer_mbox[15] = 0; // FrameBufferInfo.x_offset
+    framebuffer_mbox[16] = 0; // FrameBufferInfo.y.offset
+
+    framebuffer_mbox[17] = 0x48005; // set depth
+    framebuffer_mbox[18] = 4;
+    framebuffer_mbox[19] = 4;
+    framebuffer_mbox[20] = 32; // FrameBufferInfo.depth
+
+    framebuffer_mbox[21] = 0x48006; // set pixel order
+    framebuffer_mbox[22] = 4;
+    framebuffer_mbox[23] = 4;
+    framebuffer_mbox[24] = 1; // RGB, not BGR preferably
+
+    framebuffer_mbox[25] = 0x40001; // get framebuffer, gets alignment on request
+    framebuffer_mbox[26] = 8;
+    framebuffer_mbox[27] = 8;
+    framebuffer_mbox[28] = 4096; // FrameBufferInfo.pointer
+    framebuffer_mbox[29] = 0;    // FrameBufferInfo.size
+
+    framebuffer_mbox[30] = 0x40008; // get pitch
+    framebuffer_mbox[31] = 4;
+    framebuffer_mbox[32] = 4;
+    framebuffer_mbox[33] = 0; // FrameBufferInfo.pitch
+
+    framebuffer_mbox[34] = MBOX_TAG_LAST;
+
+    // this might not return exactly what we asked for, could be
+    // the closest supported resolution instead
+    if (mbox_call(MBOX_CH_PROP, framebuffer_mbox) && framebuffer_mbox[20] == 32 && framebuffer_mbox[28] != 0)
+    {
+        framebuffer_mbox[28] &= 0x3FFFFFFF; // convert GPU address to ARM address
+        width = framebuffer_mbox[5];        // get actual physical width
+        height = framebuffer_mbox[6];       // get actual physical height
+        pitch = framebuffer_mbox[33];       // get number of bytes per line
+        isrgb = framebuffer_mbox[24];       // get the actual channel order
+        lfb = PHYS_TO_VIRT((void *)((unsigned long)framebuffer_mbox[28]));
+    }
+    else
+        uart_puts("Unable to set screen resolution to 1024x768x32\n");
 }

@@ -125,6 +125,11 @@ thread_t *thread_create(program_t entry_point, const char *name)
     memset(thread_ptr->registered_signal_handler, 0, sizeof(signal_handler_t) * MAX_SIGNAL_HANDLER_CNT);
     memset(thread_ptr->signal_pending_count, 0, sizeof(size_t) * MAX_SIGNAL_HANDLER_CNT);
 
+    strcpy(thread_ptr->cwd, "/");
+    vfs_open("/dev/uart", 0, &thread_ptr->fdt[0]);
+    vfs_open("/dev/uart", 0, &thread_ptr->fdt[1]);
+    vfs_open("/dev/uart", 0, &thread_ptr->fdt[2]);
+
     list_add(&thread_ptr->listhead, &run_queue);
 
     CRITICAL_SECTION_END;

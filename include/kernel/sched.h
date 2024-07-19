@@ -4,12 +4,14 @@
 #include <kernel/signal.h>
 #include <kernel/list.h>
 #include <kernel/trapframe.h>
+#include <fs/vfs.h>
 #include <stddef.h>
 
 #define MAX_THREAD_COUNT        256
 #define MAX_THREAD_NAME_LEN     32
 #define USTACK_SIZE             0x1000
 #define KSTACK_SIZE             0x1000
+#define MAX_FD_NUM              16
 
 // typedef void (*program_t)();
 typedef char * program_t;
@@ -71,6 +73,11 @@ typedef struct thread {
     size_t signal_pending_count[MAX_SIGNAL_HANDLER_CNT];
     signal_handler_t handling_signal;
     thread_context_t signal_context;
+
+    /* Filesystem */
+    char cwd[MAX_PATHNAME_LEN + 1];
+    struct file *fdt[MAX_FD_NUM];
+
 } thread_t;
 
 void sched_init();

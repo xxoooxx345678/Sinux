@@ -5,13 +5,13 @@
 #include <kernel/timer.h>
 #include <kernel/exception.h>
 #include <kernel/sched.h>
-
-extern char *dtb_base_address;
+#include <fs/vfs.h>
 
 void main()
 {
     traverse_device_tree(dtb_callback_initramfs);
     memory_init((void *)PHYS_TO_VIRT(0), (void *)PHYS_TO_VIRT(0x3c000000));
+    fs_init();
     uart_init();
     timer_init();
     sched_init();
@@ -21,5 +21,6 @@ void main()
 
     sched_enable();
 
+    // make current thread an idle thread
     idle();
 }
