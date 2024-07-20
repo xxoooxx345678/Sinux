@@ -1,5 +1,7 @@
 # Sinux
 
+A simple kernel for bare-metal Raspberry Pi 3b+ (AArch64)
+
 ## Features
 
 - Bootloader
