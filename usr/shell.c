@@ -115,5 +115,7 @@ void print_boot_msg()
 {
     clear();
     uart_printf("WELCOME !!!!!\n");
+    uart_printf("Enter \"exec *.img\" to execute user process provided by TA.\n");
+    uart_printf("Please enter \"help\" for more information.\n");
     uart_printf("\n");
 }
