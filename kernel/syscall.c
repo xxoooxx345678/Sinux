@@ -10,6 +10,30 @@
 #include <fs/vfs.h>
 #include <dev/framebuffer.h>
 
+const SYSCALL_FUNC sys_table[MAX_SYSCALL_NUM] = {
+    [SYS_GETPID] CAST_TO_SYSCALL_FUNC(sys_getpid),
+    [SYS_UARTREAD] CAST_TO_SYSCALL_FUNC(sys_uartread),
+    [SYS_UARTWRITE] CAST_TO_SYSCALL_FUNC(sys_uartwrite),
+    [SYS_EXEC] CAST_TO_SYSCALL_FUNC(sys_exec),
+    [SYS_FORK] CAST_TO_SYSCALL_FUNC(sys_fork),
+    [SYS_EXIT] CAST_TO_SYSCALL_FUNC(sys_exit),
+    [SYS_MBOX_CALL] CAST_TO_SYSCALL_FUNC(sys_mbox_call),
+    [SYS_KILL] CAST_TO_SYSCALL_FUNC(sys_kill),
+    [SYS_SIGNAL] CAST_TO_SYSCALL_FUNC(sys_signal),
+    [SYS_SIGKILL] CAST_TO_SYSCALL_FUNC(sys_sigkill),
+    [SYS_MMAP] CAST_TO_SYSCALL_FUNC(sys_mmap),
+    [SYS_OPEN] CAST_TO_SYSCALL_FUNC(sys_open),
+    [SYS_CLOSE] CAST_TO_SYSCALL_FUNC(sys_close),
+    [SYS_WRITE] CAST_TO_SYSCALL_FUNC(sys_write),
+    [SYS_READ] CAST_TO_SYSCALL_FUNC(sys_read),
+    [SYS_MKDIR] CAST_TO_SYSCALL_FUNC(sys_mkdir),
+    [SYS_MOUNT] CAST_TO_SYSCALL_FUNC(sys_mount),
+    [SYS_CHDIR] CAST_TO_SYSCALL_FUNC(sys_chdir),
+    [SYS_LSEEK64] CAST_TO_SYSCALL_FUNC(sys_lseek64),
+    [SYS_IOCTL] CAST_TO_SYSCALL_FUNC(sys_ioctl),
+    [SYS_SIGRETURN] CAST_TO_SYSCALL_FUNC(sys_sigreturn)
+};
+
 extern thread_t *cur_thread;
 extern thread_t threads[MAX_THREAD_COUNT];
 

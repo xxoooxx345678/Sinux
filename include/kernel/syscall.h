@@ -5,7 +5,10 @@
 #include <stddef.h>
 #include <string.h>
 
+typedef uint64_t (*SYSCALL_FUNC)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+
 #define MAX_SYSCALL_NUM 64
+#define CAST_TO_SYSCALL_FUNC(x) ((SYSCALL_FUNC)(x))
 
 typedef enum {
     SYS_GETPID,
