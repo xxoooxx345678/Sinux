@@ -24,13 +24,13 @@ A simple kernel for bare-metal Raspberry Pi 3b+ (AArch64)
 
 ## TODO
 
-- [] Provide support for user-space program
+- [ ] Provide support for user-space program
     - shell
     - ls
     - cat
     - User library
     
-- [] Fix cpio bug (program has to be copy first otherwise it is buggy)
+- [ ] Fix cpio bug (program has to be copy first otherwise it is buggy)
 
 ## Build & Run
 
