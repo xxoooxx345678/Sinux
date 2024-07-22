@@ -22,6 +22,16 @@ A simple kernel for bare-metal Raspberry Pi 3b+ (AArch64)
 - Virtual Memory
 - Virtual Filesystem
 
+## TODO
+
+- [] Provide support for user-space program
+    - shell
+    - ls
+    - cat
+    - User library
+    
+- [] Fix cpio bug (program has to be copy first otherwise it is buggy)
+
 ## Build & Run
 
 ### Requirements

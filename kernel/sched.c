@@ -3,6 +3,8 @@
 #include <kernel/exception.h>
 #include <drivers/uart.h>
 #include <fs/cpio.h>
+#include <fs/vfs.h>
+#include <fs/initramfs.h>
 #include <mm/vm.h>
 #include <mm/mmu.h>
 #include <mm/mm.h>
@@ -139,7 +141,13 @@ thread_t *thread_create(program_t entry_point, const char *name)
 
 int thread_exec(const char *name, char *const argv[])
 {
-    char *program_start = get_file_start(name);
+    char abs_path[MAX_PATHNAME_LEN];
+    resolve_path(name, cur_thread->cwd, abs_path);
+    struct vnode *target_vnode;
+    vfs_lookup(abs_path, &target_vnode);
+
+    char *program_start = ((struct initramfs_inode *)target_vnode->internal)->data;
+    cur_thread->program_size = ((struct initramfs_inode *)target_vnode->internal)->datasize;
     
     if (program_start == NULL)
         goto fail;
@@ -152,7 +160,6 @@ int thread_exec(const char *name, char *const argv[])
     /* Don't know why it is buggy, offset of some instructions is not correct! */
     // cur_thread->entry_point = (program_t)program_start;
 
-    cur_thread->program_size = get_file_size(name);
     cur_thread->entry_point = malloc(cur_thread->program_size);
     memcpy(cur_thread->entry_point, program_start, cur_thread->program_size);
 
