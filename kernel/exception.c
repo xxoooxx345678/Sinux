@@ -9,6 +9,34 @@
 #include <mm/vm.h>
 #include <stddef.h>
 
+typedef uint64_t (*SYSCALL_FUNC)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+
+#define CAST_TO_SYSCALL_FUNC(x) ((SYSCALL_FUNC)(x))
+
+const SYSCALL_FUNC sys_table[MAX_SYSCALL_NUM] = {
+    [SYS_GETPID] CAST_TO_SYSCALL_FUNC(sys_getpid),
+    [SYS_UARTREAD] CAST_TO_SYSCALL_FUNC(sys_uartread),
+    [SYS_UARTWRITE] CAST_TO_SYSCALL_FUNC(sys_uartwrite),
+    [SYS_EXEC] CAST_TO_SYSCALL_FUNC(sys_exec),
+    [SYS_FORK] CAST_TO_SYSCALL_FUNC(sys_fork),
+    [SYS_EXIT] CAST_TO_SYSCALL_FUNC(sys_exit),
+    [SYS_MBOX_CALL] CAST_TO_SYSCALL_FUNC(sys_mbox_call),
+    [SYS_KILL] CAST_TO_SYSCALL_FUNC(sys_kill),
+    [SYS_SIGNAL] CAST_TO_SYSCALL_FUNC(sys_signal),
+    [SYS_SIGKILL] CAST_TO_SYSCALL_FUNC(sys_sigkill),
+    [SYS_MMAP] CAST_TO_SYSCALL_FUNC(sys_mmap),
+    [SYS_OPEN] CAST_TO_SYSCALL_FUNC(sys_open),
+    [SYS_CLOSE] CAST_TO_SYSCALL_FUNC(sys_close),
+    [SYS_WRITE] CAST_TO_SYSCALL_FUNC(sys_write),
+    [SYS_READ] CAST_TO_SYSCALL_FUNC(sys_read),
+    [SYS_MKDIR] CAST_TO_SYSCALL_FUNC(sys_mkdir),
+    [SYS_MOUNT] CAST_TO_SYSCALL_FUNC(sys_mount),
+    [SYS_CHDIR] CAST_TO_SYSCALL_FUNC(sys_chdir),
+    [SYS_LSEEK64] CAST_TO_SYSCALL_FUNC(sys_lseek64),
+    [SYS_IOCTL] CAST_TO_SYSCALL_FUNC(sys_ioctl),
+    [SYS_SIGRETURN] CAST_TO_SYSCALL_FUNC(sys_sigreturn)
+};
+
 extern thread_t *cur_thread;
 
 static int lock = 0;
@@ -92,72 +120,7 @@ static void syscall_handler(trapframe_t *tf)
 
     uint64_t syscall_no = cur_thread->trapframe->x8;
 
-    switch (syscall_no)
-    {
-    case 0:
-        cur_thread->trapframe->x0 = sys_getpid();
-        break;
-    case 1:
-        cur_thread->trapframe->x0 = sys_uartread((char *)cur_thread->trapframe->x0, (size_t)cur_thread->trapframe->x1);
-        break;
-    case 2:
-        cur_thread->trapframe->x0 = sys_uartwrite((char *)cur_thread->trapframe->x0, (size_t)cur_thread->trapframe->x1);
-        break;
-    case 3:
-        cur_thread->trapframe->x0 = sys_exec((char *)cur_thread->trapframe->x0, (char **)cur_thread->trapframe->x1);
-        break;
-    case 4:
-        cur_thread->trapframe->x0 = sys_fork();
-        break;
-    case 5:
-        sys_exit();
-        break;
-    case 6:
-        cur_thread->trapframe->x0 = sys_mbox_call((unsigned char)cur_thread->trapframe->x0, (unsigned int *)cur_thread->trapframe->x1);
-        break;
-    case 7:
-        sys_kill((int)cur_thread->trapframe->x0);
-        break;
-    case 8:
-        sys_signal((int)cur_thread->trapframe->x0, (signal_handler_t)cur_thread->trapframe->x1);
-        break;
-    case 9:
-        sys_sigkill((int)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
-        break;
-    case 10:
-        cur_thread->trapframe->x0 = sys_mmap((void *)cur_thread->trapframe->x0, (size_t)(void *)cur_thread->trapframe->x1, (int)cur_thread->trapframe->x2, (int)cur_thread->trapframe->x3, (int)cur_thread->trapframe->x4, (int)cur_thread->trapframe->x5);
-        break;
-    case 11:
-        cur_thread->trapframe->x0 = sys_open((char *)cur_thread->trapframe->x0, (int)cur_thread->trapframe->x1);
-        break;
-    case 12:
-        cur_thread->trapframe->x0 = sys_close((int)cur_thread->trapframe->x0);
-        break;
-    case 13:
-        cur_thread->trapframe->x0 = sys_write((int)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (unsigned long)cur_thread->trapframe->x2);
-        break;
-    case 14:
-        cur_thread->trapframe->x0 = sys_read((int)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (unsigned long)cur_thread->trapframe->x2);
-        break;
-    case 15:
-        cur_thread->trapframe->x0 = sys_mkdir((char *)cur_thread->trapframe->x0, (unsigned)cur_thread->trapframe->x1);
-        break;
-    case 16:
-        cur_thread->trapframe->x0 = sys_mount((char *)cur_thread->trapframe->x0, (char *)cur_thread->trapframe->x1, (char *)cur_thread->trapframe->x2, (unsigned long)cur_thread->trapframe->x3, (void *)cur_thread->trapframe->x4);
-        break;
-    case 17:
-        cur_thread->trapframe->x0 = sys_chdir((char *)cur_thread->trapframe->x0);
-        break;
-    case 18:
-        cur_thread->trapframe->x0 = sys_lseek64((int)cur_thread->trapframe->x0, (long)cur_thread->trapframe->x1, (int)cur_thread->trapframe->x2);
-        break;
-    case 19:
-        cur_thread->trapframe->x0 = sys_ioctl((int)cur_thread->trapframe->x0, (unsigned long)cur_thread->trapframe->x1, (void *)cur_thread->trapframe->x2);
-        break;
-    case 30:
-        sys_sigreturn();
-        break;
-    }
+    cur_thread->trapframe->x0 = sys_table[syscall_no](cur_thread->trapframe->x0, cur_thread->trapframe->x1, cur_thread->trapframe->x2, cur_thread->trapframe->x3, cur_thread->trapframe->x4);
 }
 
 void sync_el0_64_handler(trapframe_t *tf)

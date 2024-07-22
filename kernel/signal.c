@@ -1,4 +1,5 @@
 #include <kernel/signal.h>
+#include <kernel/syscall.h>
 #include <kernel/sched.h>
 #include <drivers/uart.h>
 
@@ -44,7 +45,7 @@ signal_handler_t default_signal_handler_table[MAX_SIGNAL_HANDLER_CNT] = {
 void registered_signal_handler_wrapper()
 {
     asm volatile("blr x16");
-    asm volatile("mov x8, 30\n");
+    asm volatile("mov x8, %0\n"::"r"(SYS_SIGRETURN));
     asm volatile("svc 0\n");
 }
 
